@@ -8,7 +8,7 @@ from warpnerf.scene.object_utilities import set_obj_type
 from warpnerf.scene.objects.blender_compatible import BlenderCompatible
 from warpnerf.scene.objects.scene_object import SceneObject
 
-class TrainingCamera(SceneObject, BlenderCompatible):
+class PerspectiveCamera(SceneObject, BlenderCompatible):
 
     focal_length: float
     image_dims: Tuple[int, int]
@@ -18,7 +18,7 @@ class TrainingCamera(SceneObject, BlenderCompatible):
     
     @staticmethod
     def type(cls) -> str:
-        return 'warpnerf_otype_training_camera'
+        return 'warpnerf_otype_perspective_camera'
     
     # DictSerializable methods
     def serialize(self) -> dict:
@@ -34,7 +34,7 @@ class TrainingCamera(SceneObject, BlenderCompatible):
 
     @classmethod
     def deserialize(cls, data: dict):
-        cam = TrainingCamera()
+        cam = PerspectiveCamera()
         cam.focal_length = data['f']
         cam.image_dims = (data['img_w'], data['img_h'])
         cam.sensor_dims = (data['sx'], data['sy'])
@@ -55,9 +55,9 @@ class TrainingCamera(SceneObject, BlenderCompatible):
         return cam_obj
 
     @classmethod
-    def from_blender(cls, ctx: bpy.types.Context, obj: bpy.types.Object) -> 'TrainingCamera':
+    def from_blender(cls, ctx: bpy.types.Context, obj: bpy.types.Object) -> 'PerspectiveCamera':
         cam_data = obj.data
-        cam = TrainingCamera()
+        cam = PerspectiveCamera()
         cam.focal_length = bl2wn_camera_focal_length(cam_data, cam.image_dims)
         cam.rotation_matrix = obj.matrix_world[:, :3]
         cam.translation_vector = obj.matrix_world[:, 3]
