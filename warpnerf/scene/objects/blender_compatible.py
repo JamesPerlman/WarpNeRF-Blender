@@ -14,5 +14,14 @@ class BlenderDeserializable(ABC):
     def from_blender(cls, ctx: bpy.types.Context, obj: Any):
         pass
 
-class BlenderCompatible(BlenderSerializable, BlenderDeserializable):
+class BlenderUpdatable(ABC):
+    @abstractmethod
+    def update_from_blender(self, ctx: bpy.types.Context, obj: bpy.types.Object):
+        pass
+
+    @abstractmethod
+    def update_to_blender(self, ctx: bpy.types.Context, obj: bpy.types.Object):
+        pass
+
+class BlenderCompatible(BlenderSerializable, BlenderDeserializable, BlenderUpdatable):
     pass
