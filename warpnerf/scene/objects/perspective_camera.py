@@ -46,23 +46,31 @@ class PerspectiveCamera(SceneObject, BlenderCompatible):
     # BlenderCompatible methods
     def to_blender(self) -> bpy.types.Object:
         cam_data = bpy.types.Camera()
-        cam_data.lens = wn2bl_camera_focal_length(cam_data, self.image_dims, self.focal_length)
         cam_obj = bpy.types.Object()
         cam_obj.data = cam_data
+
         set_obj_type(cam_obj, self.__class__.type())
-        cam_obj.matrix_world = np.concatenate([self.rotation_matrix, self.translation_vector], axis=1)
+
+        self.update_to_blender(None, cam_obj)
 
         return cam_obj
 
     @classmethod
     def from_blender(cls, ctx: bpy.types.Context, obj: bpy.types.Object) -> 'PerspectiveCamera':
-        cam_data = obj.data
         cam = PerspectiveCamera()
-        cam.focal_length = bl2wn_camera_focal_length(cam_data, cam.image_dims)
-        cam.rotation_matrix = obj.matrix_world[:, :3]
-        cam.translation_vector = obj.matrix_world[:, 3]
-        cam.image_dims = (ctx.scene.render.resolution_x, ctx.scene.render.resolution_y)
-        aspect_ratio = ctx.scene.render.resolution_y / ctx.scene.render.resolution_x
-        cam.sensor_dims = (1.0, aspect_ratio)
         
-        cam.sensor_dims
+        cam.update_from_blender(ctx, obj)
+        
+        return cam
+    
+    def update_from_blender(self, ctx: bpy.types.Context, obj: bpy.types.Object):
+        self.focal_length = bl2wn_camera_focal_length(obj.data, self.image_dims)
+        self.rotation_matrix = obj.matrix_world[:, :3]
+        self.translation_vector = obj.matrix_world[:, 3]
+        self.image_dims = (ctx.scene.render.resolution_x, ctx.scene.render.resolution_y)
+        aspect_ratio = ctx.scene.render.resolution_y / ctx.scene.render.resolution_x
+        self.sensor_dims = (1.0, aspect_ratio)
+    
+    def update_to_blender(self, ctx: bpy.types.Context, obj: bpy.types.Object):
+        obj.matrix_world = np.concatenate([self.rotation_matrix, self.translation_vector], axis=1)
+        obj.data.lens = wn2bl_camera_focal_length(obj.data, self.image_dims, self.focal_length)
