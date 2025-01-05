@@ -21,7 +21,8 @@ class WarpNeRFPreferences(AddonPreferences):
     websocket_uri: StringProperty(
         name="Websocket URI",
         description = "URI of the websocket server",
-        subtype='BYTE_STRING'
+        subtype='BYTE_STRING',
+        default='ws://localhost:8080',
     )
 
     def draw(self, context):
