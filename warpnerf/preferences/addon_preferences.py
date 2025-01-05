@@ -22,10 +22,16 @@ class WarpNeRFPreferences(AddonPreferences):
         name="Websocket URI",
         description = "URI of the websocket server",
         subtype='BYTE_STRING',
-        default='ws://localhost:8080',
+        default='ws://localhost:8765',
     )
 
     def draw(self, context):
         layout = self.layout
         row = layout.row()
         row.prop(self, 'websocket_uri')
+
+def register_addon_preferences():
+    bpy.utils.register_class(WarpNeRFPreferences)
+
+def unregister_addon_preferences():
+    bpy.utils.unregister_class(WarpNeRFPreferences)
