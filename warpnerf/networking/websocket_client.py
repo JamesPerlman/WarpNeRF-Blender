@@ -79,6 +79,7 @@ class WebSocketClient:
         
         else:
             print("Not connected to the server.")
+        
 
     async def disconnect(self):
         """Disconnect from the WebSocket server."""

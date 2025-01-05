@@ -1,4 +1,6 @@
 from warpnerf.networking.websocket_client import WebSocketClient
+from warpnerf.preferences.addon_preferences import fetch_pref
+from warpnerf.utils.async_utils import do_sync
 
 class WarpNeRFClient:
     instance: 'WarpNeRFClient' = None
@@ -9,10 +11,18 @@ class WarpNeRFClient:
             cls.instance.__initialized = False
         return cls.instance
     
-    def __init__(self, uri):
+    def __init__(self):
         if self.__initialized: return
         self.__initialized = True
-        self.client = WebSocketClient(uri)
+    
+    @property
+    def client(self):
+        if not hasattr(self, "_client"):
+            uri = fetch_pref("websocket_uri")
+            self._client = WebSocketClient(uri)
+            do_sync(self._client.connect())
+        
+        return self._client
     
     def subscribe(self, topic, callback):
         return self.client.subscribe(topic, callback)
@@ -21,7 +31,7 @@ class WarpNeRFClient:
         self.client.unsubscribe(topic, callback)
     
     def load_dataset(self, path: str):
-        self.client.send("load_dataset", {"path": path})
+        do_sync(self.client.send("load_dataset", {"path": path}))
 
 #    def request_render(self, request: RenderRequest):
 #        self.client.send("request_render", request.serialize())

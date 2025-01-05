@@ -7,9 +7,9 @@ class ImportNeRFDatasetOperator(bpy.types.Operator):
     bl_label = "Import Dataset"
     bl_description = "Import a dataset from a directory"
 
-    filepath: bpy.props.StringProperty(subtype='FILE_PATH')
+    filepath: bpy.props.StringProperty(subtype='FILE_PATH') # type: ignore
     filename_ext = ".json"
-    filter_glob: bpy.props.StringProperty(default='*.json', options={'HIDDEN'})
+    filter_glob: bpy.props.StringProperty(default='*.json', options={'HIDDEN'}) # type: ignore
 
     @classmethod
     def poll(cls, context):
@@ -18,7 +18,7 @@ class ImportNeRFDatasetOperator(bpy.types.Operator):
     def execute(self, context):
         print(f"Importing NeRF dataset from: {self.filepath}")
 
-        WarpNeRFClient.instance.load_dataset(self.filepath)
+        WarpNeRFClient().load_dataset(self.filepath)
 
         return {'FINISHED'}
 
