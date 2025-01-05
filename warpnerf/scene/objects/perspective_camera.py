@@ -4,7 +4,7 @@ import numpy as np
 
 from warpnerf.blender_utils.cameras import bl2wn_camera_focal_length, wn2bl_camera_focal_length
 from warpnerf.scene.object_identifiers import OTYPE_TRAIN_CAM
-from warpnerf.scene.object_utilities import set_obj_type
+from warpnerf.utils.object_utilities import set_obj_type
 from warpnerf.scene.objects.blender_compatible import BlenderCompatible
 from warpnerf.scene.objects.scene_object import SceneObject
 

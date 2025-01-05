@@ -9,8 +9,8 @@ class BlenderSerializable(ABC):
         pass
 
 class BlenderDeserializable(ABC):
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def from_blender(cls, ctx: bpy.types.Context, obj: Any):
         pass
 

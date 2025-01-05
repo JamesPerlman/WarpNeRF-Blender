@@ -7,8 +7,8 @@ class DictSerializable(ABC):
         pass
 
 class DictDeserializable(ABC):
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def from_dict(cls, data: dict):
         pass
 

@@ -5,7 +5,7 @@ SceneObjectGroup = Union['SceneObject', List['SceneObjectGroup']]
 
 class SceneObject(ABC):
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def type(cls) -> str:
         pass

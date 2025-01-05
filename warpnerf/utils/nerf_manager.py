@@ -1,12 +1,12 @@
+from warpnerf.networking.requests.render_request import RenderRequest
 from warpnerf.networking.websocket_client import WebSocketClient
 
-class RenderClient:
-    instance = None
+class NeRFManager:
+    instance: 'NeRFManager' = None
 
     def __new__(cls, *args, **kwargs):
         if cls.instance is None:
-            cls.instance = super(RenderClient, cls).__new__(cls)
-            cls.instance.__initialized = False
+            cls.instance = super(NeRFManager, cls).__new__(cls)
         return cls.instance
     
     def __init__(self, uri):

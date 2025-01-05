@@ -1,2 +1,5 @@
+from typing import Any
+
+
 class RenderRequest:
-    scene:
+    scene: Any

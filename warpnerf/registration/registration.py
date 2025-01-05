@@ -1,10 +1,11 @@
 import importlib
 import bpy
-from warpnerf.blender_utils.scene_update_handler import register_depsgraph_updates, unregister_depsgraph_updates
 
 # Thank you https://github.com/SBCV/Blender-Addon-Photogrammetry-Importer
 
 
+from warpnerf.operators.import_dataset_operator import ImportNeRFDatasetOperator
+from warpnerf.panels.main.training_panel import NeRFTrainingPanel
 from warpnerf.preferences.addon_preferences import (register_addon_preferences, unregister_addon_preferences)
 from warpnerf.renderers.remote_render_engine import (register_remote_render_engine, unregister_remote_render_engine)
 
@@ -12,6 +13,9 @@ from warpnerf.renderers.remote_render_engine import (register_remote_render_engi
 # "Registration" class causes different errors when hovering over entries in
 # "file/import" of the following form:
 # "rna_uiItemO: operator missing srna 'import_scene.colmap_model'""
+
+def _nerf_dataset_import_operator_fn(self, context):
+    self.layout.operator(ImportNeRFDatasetOperator.bl_idname, text="NeRF Dataset")
 
 class Registration:
     """Class to register import and export operators."""
@@ -45,12 +49,12 @@ class Registration:
     @classmethod
     def register_importers(cls):
         """Register importers."""
-        pass
+        cls._register_importer(ImportNeRFDatasetOperator, _nerf_dataset_import_operator_fn)
 
     @classmethod
     def unregister_importers(cls):
         """Unregister all registered importers."""
-        pass
+        cls._unregister_importer(ImportNeRFDatasetOperator, _nerf_dataset_import_operator_fn)
 
     @classmethod
     def register_exporters(cls):
@@ -63,14 +67,25 @@ class Registration:
         pass
 
     @classmethod
-    def register_misc_components(cls):
-        register_remote_render_engine()
-        register_addon_preferences()
-        register_depsgraph_updates()
+    def register_panels(cls):
+        """Register panels."""
+        bpy.utils.register_class(NeRFTrainingPanel)
 
     @classmethod
-    def unregister_misc_components(cls):
+    def unregister_panels(cls):
+        """Unregister panels."""
+        bpy.utils.unregister_class(NeRFTrainingPanel)
+
+    @classmethod
+    def register_addon(cls):
+        register_remote_render_engine()
+        register_addon_preferences()
+        cls.register_importers()
+        cls.register_panels()
+
+    @classmethod
+    def unregister_addon(cls):
         unregister_remote_render_engine()
         unregister_addon_preferences()
-        unregister_depsgraph_updates()
-
+        cls.unregister_importers()
+        cls.unregister_panels()

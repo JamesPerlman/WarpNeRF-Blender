@@ -19,6 +19,8 @@ class WNScene(BlenderDeserializable, DictSerializable):
             if obj.parent is None:
                 scene.objects.append(SceneObject.from_blender(ctx, obj))
             else:
+                # TODO: complete the recursion
+                pass
                 
 
     def to_dict(self):
