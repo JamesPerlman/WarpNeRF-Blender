@@ -24,10 +24,7 @@ class WebSocketClient:
     def unsubscribe(self, topic, callback):
         """Unsubscribe a callback from a topic."""
         
-        if callback in self.subscribers[topic]:
-            self.subscribers[topic].remove(callback)    
-            if not self.subscribers[topic]:
-                del self.subscribers[topic]
+        self.subscribers[topic].remove(callback)
 
     async def _dispatch_message(self, message):
         """Dispatch a message to the appropriate subscribers."""
