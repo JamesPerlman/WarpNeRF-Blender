@@ -50,6 +50,7 @@ class WebSocketClient:
         
         except Exception as e:
             print(f"Listening error: {e}")
+            self.is_connected = False
 
     async def connect(self):
         """Connect to the WebSocket server."""
@@ -63,6 +64,7 @@ class WebSocketClient:
 
         except Exception as e:
             print(f"Connection error: {e}")
+            self.is_connected = False
 
     async def send(self, topic, payload):
         """Send a message to the WebSocket server."""
