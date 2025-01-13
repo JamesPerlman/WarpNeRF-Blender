@@ -1,38 +1,63 @@
+from pathlib import Path
 import bpy
 from warpnerf.networking.warpnerf_client import WarpNeRFClient
 
 class ImportNeRFDatasetOperator(bpy.types.Operator):
-    """An Operator to import a NeRF dataset from a directory."""
+    """An Operator to import a NeRF dataset from a directory or text input."""
     bl_idname = "warpnerf.import_nerf_dataset"
     bl_label = "Import Dataset"
-    bl_description = "Import a dataset from a directory"
+    bl_description = "Import a dataset from a directory or specify a dataset name"
 
-    filepath: bpy.props.StringProperty(subtype='FILE_PATH') # type: ignore
+    input_mode: bpy.props.EnumProperty(
+        name="Input Mode",
+        description="Choose the input mode",
+        items=[
+            ('FILE', "File Select", "Select a JSON dataset file"),
+            ('TEXT', "Text Input", "Enter dataset name directly")
+        ],
+        default='TEXT'
+    )
+
+    filepath: bpy.props.StringProperty(subtype='FILE_PATH')  # For file selection
     filename_ext = ".json"
-    filter_glob: bpy.props.StringProperty(default='*.json', options={'HIDDEN'}) # type: ignore
+    filter_glob: bpy.props.StringProperty(default='*.json', options={'HIDDEN'})
+
+    text_input: bpy.props.StringProperty(  # For direct text input
+        name="Dataset Name",
+        description="Enter the name of the dataset",
+        default="/home/luks/james/nerfs/pipe-thingy-makawao/transforms.json"
+    )
 
     @classmethod
     def poll(cls, context):
         return True
 
     def execute(self, context):
-        print(f"Importing NeRF dataset from: {self.filepath}")
-
-        WarpNeRFClient().load_dataset(self.filepath)
+        if self.input_mode == 'FILE':
+            print(f"Importing NeRF dataset from file: {self.filepath}")
+            WarpNeRFClient().load_dataset(self.filepath)
+        elif self.input_mode == 'TEXT':
+            print(f"Importing NeRF dataset by name: {self.text_input}")
+            path = Path(self.text_input)
+            WarpNeRFClient().load_dataset(path)
 
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        # Open browser, take reference to 'self' read the path to selected
-        # file, put path in predetermined self fields.
-        # See: https://docs.blender.org/api/current/bpy.types.WindowManager.html#bpy.types.WindowManager.fileselect_add
-        context.window_manager.fileselect_add(self)
-        # Tells Blender to hang on for the slow user input
-        return {'RUNNING_MODAL'}
+        if self.input_mode == 'FILE':
+            context.window_manager.fileselect_add(self)
+            return {'RUNNING_MODAL'}
+        else:
+            return context.window_manager.invoke_props_dialog(self)
 
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "input_mode")
+        if self.input_mode == 'TEXT':
+            layout.prop(self, "text_input")
 
 def menu_func_import(self, context):
-    self.layout.operator(ImportNeRFDatasetOperator.bl_idname, text="NeRF Dataset")
+    self.layout.operator(ImportNeRFDatasetOperator.bl_idname, text="Import NeRF Dataset")
 
 def register():
     bpy.utils.register_class(ImportNeRFDatasetOperator)
@@ -41,3 +66,6 @@ def register():
 def unregister():
     bpy.utils.unregister_class(ImportNeRFDatasetOperator)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+
+if __name__ == "__main__":
+    register()
