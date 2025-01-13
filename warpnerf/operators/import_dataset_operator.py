@@ -16,17 +16,17 @@ class ImportNeRFDatasetOperator(bpy.types.Operator):
             ('TEXT', "Text Input", "Enter dataset name directly")
         ],
         default='TEXT'
-    )
+    ) # type: ignore
 
-    filepath: bpy.props.StringProperty(subtype='FILE_PATH')  # For file selection
+    filepath: bpy.props.StringProperty(subtype='FILE_PATH')  # type: ignore
     filename_ext = ".json"
-    filter_glob: bpy.props.StringProperty(default='*.json', options={'HIDDEN'})
+    filter_glob: bpy.props.StringProperty(default='*.json', options={'HIDDEN'}) # type: ignore
 
     text_input: bpy.props.StringProperty(  # For direct text input
         name="Dataset Name",
         description="Enter the name of the dataset",
         default="/home/luks/james/nerfs/pipe-thingy-makawao/transforms.json"
-    )
+    ) # type: ignore
 
     @classmethod
     def poll(cls, context):
