@@ -1,37 +1,42 @@
+from typing import Tuple
 import bpy
 import array
+import threading
+import time
+import random
+
 from gpu_extras.presets import draw_texture_2d
 
+from warpnerf.scene.objects.perspective_camera import PerspectiveCamera
+
 class RemoteRenderEngine(bpy.types.RenderEngine):
-    # These three members are used by blender to set up the
-    # RenderEngine; define its internal name, visible name and capabilities.
     bl_idname = "WARPNERF_REMOTE_RENDER_ENGINE"
     bl_label = "WarpNeRF (Remote)"
     bl_use_preview = True
 
-    # Init is called whenever a new render engine instance is created. Multiple
-    # instances may exist at the same time, for example for a viewport and final
-    # render.
     def __init__(self):
         self.scene_data = None
         self.draw_data = None
+        # Threading status
+        self.long_render_thread = None
+        self.long_render_finished = False
+        self.long_render_pixels = None
+        self.prev_camera: PerspectiveCamera = None
+        self.prev_dims: Tuple[int, int] = None
 
-    # When the render engine instance is destroy, this is called. Clean up any
-    # render engine data here, for example stopping running render threads.
     def __del__(self):
         pass
 
-    # This is the method called by Blender for both final renders (F12) and
-    # small preview for materials, world and lights.
     def render(self, depsgraph):
+        """
+        F12 render. We'll just do a simple color fill.
+        """
         scene = depsgraph.scene
         scale = scene.render.resolution_percentage / 100.0
         self.size_x = int(scene.render.resolution_x * scale)
         self.size_y = int(scene.render.resolution_y * scale)
 
-        # Fill the render result with a flat color. The framebuffer is
-        # defined as a list of pixels, each pixel itself being a list of
-        # R,G,B,A values.
+        # Fill the render result with a flat color
         if self.is_preview:
             color = [0.1, 0.2, 0.1, 1.0]
         else:
@@ -40,106 +45,166 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
         pixel_count = self.size_x * self.size_y
         rect = [color] * pixel_count
 
-        # Here we write the pixel values to the RenderResult
         result = self.begin_result(0, 0, self.size_x, self.size_y)
         layer = result.layers[0].passes["Combined"]
         layer.rect = rect
         self.end_result(result)
 
-    # For viewport renders, this method gets called once at the start and
-    # whenever the scene or 3D viewport changes. This method is where data
-    # should be read from Blender in the same thread. Typically a render
-    # thread will be started to do the work while keeping Blender responsive.
     def view_update(self, context, depsgraph):
+        """
+        Called whenever the scene or 3D viewport changes. We'll leave it minimal,
+        since we spawn the "long render" in view_draw.
+        """
+        print("view_update")
         region = context.region
-        view3d = context.space_data
         scene = depsgraph.scene
 
-        # Get viewport dimensions
-        dimensions = region.width, region.height
-
+        # If we haven't set up scene_data, do so now
         if not self.scene_data:
-            # First time initialization
             self.scene_data = []
-            first_time = True
-
-            # Loop over all datablocks used in the scene.
             for datablock in depsgraph.ids:
-                pass
+                pass  # no-op
         else:
-            first_time = False
-
-            # Test which datablocks changed
             for update in depsgraph.updates:
                 print("Datablock updated: ", update.id.name)
-
-            # Test if any material was added, removed or changed.
             if depsgraph.id_type_updated('MATERIAL'):
                 print("Materials updated")
 
-        # Loop over all object instances in the scene.
-        if first_time or depsgraph.id_type_updated('OBJECT'):
-            for instance in depsgraph.object_instances:
-                pass
-
-    # For viewport renders, this method is called whenever Blender redraws
-    # the 3D viewport. The renderer is expected to quickly draw the render
-    # with OpenGL, and not perform other expensive work.
-    # Blender will draw overlays for selection and editing on top of the
-    # rendered image automatically.
     def view_draw(self, context, depsgraph):
-        # Lazily import GPU module, so that the render engine works in
-        # background mode where the GPU module can't be imported by default.
+        """
+        Called every time the 3D viewport is drawn. We:
+         - Start a new thread to produce random pixels if not already running.
+         - Display the final random pixels if available, otherwise a quick color.
+         - Tag a redraw so Blender keeps calling view_draw() as changes happen.
+        """
+
+        # Create a Camera object from the current 3D viewport
+
+        current_region3d: bpy.types.RegionView3D = None
+        for area in context.screen.areas:
+            area: bpy.types.Area
+            if area.type == 'VIEW_3D':
+                current_region3d = area.spaces.active.region_3d
+        
+        if current_region3d is None:
+            return
+
+        camera = PerspectiveCamera.from_blender(context, current_region3d)
+
+        print("view_draw")
         import gpu
 
         region = context.region
         scene = depsgraph.scene
+        dimensions = (region.width, region.height)
 
-        # Get viewport dimensions
-        dimensions = region.width, region.height
+        is_user_initiated = (camera != self.prev_camera) or (dimensions != self.prev_dims)
 
-        # Bind shader that converts from scene linear to display space,
+        # Bind display shader
         gpu.state.blend_set('ALPHA_PREMULT')
         self.bind_display_space_shader(scene)
 
+        # Create or resize the draw data
         if not self.draw_data or self.draw_data.dimensions != dimensions:
             self.draw_data = CustomDrawData(dimensions)
 
+        # If there's no thread running, start a new 1-second "long render"
+        if is_user_initiated and (not self.long_render_thread or not self.long_render_thread.is_alive()):
+            print("Starting long render thread...")
+            self.long_render_finished = False
+            self.long_render_pixels = None
+            self.long_render_thread = threading.Thread(
+                target=self._long_render_process,
+                args=(dimensions,)
+            )
+            self.long_render_thread.start()
+
+        # If final pixels are ready, show them; else the quick pass
+        if self.long_render_finished and self.long_render_pixels is not None:
+            print("Using final rendered image for drawing.")
+            self.draw_data.update_texture(self.long_render_pixels)
+        else:
+            print("Using quick pass for drawing.")
+
+        # Draw the texture
         self.draw_data.draw()
 
+        # Unbind
         self.unbind_display_space_shader()
         gpu.state.blend_set('NONE')
 
+        self.prev_camera = camera
+        self.prev_dims = dimensions
+
+        
+
+    def _long_render_process(self, dimensions):
+        """
+        Simulates a 1-second "heavy" render that produces random noise.
+        """
+        print("Long render started...")
+        time.sleep(1.0)  # simulate remote or heavy-lift
+
+        width, height = dimensions
+        pixel_count = width * height
+
+        # random noise, each pixel is [r, g, b, a].
+        final_pixels = [
+            [random.random(), random.random(), random.random(), 1.0]
+            for _ in range(pixel_count)
+        ]
+
+        self.long_render_pixels = final_pixels
+        self.long_render_finished = True
+        print("Long render finished!")
+        self.tag_redraw()
 
 class CustomDrawData:
     def __init__(self, dimensions):
+        """
+        Create a quick-pass texture (solid color).
+        """
         import gpu
-
-        # Generate dummy float image buffer
         self.dimensions = dimensions
         width, height = dimensions
 
-        pixels = width * height * array.array('f', [0.1, 0.2, 0.1, 1.0])
+        # Quick color
+        color = [0.1, 0.2, 0.1, 1.0]
+        pixel_count = width * height
+        pixels = color * pixel_count
+
+        # Convert to GPU buffer
         pixels = gpu.types.Buffer('FLOAT', width * height * 4, pixels)
-
-        # Generate texture
         self.texture = gpu.types.GPUTexture((width, height), format='RGBA16F', data=pixels)
-
-        # Note: This is just a didactic example.
-        # In this case it would be more convenient to fill the texture with:
-        # self.texture.clear('FLOAT', value=[0.1, 0.2, 0.1, 1.0])
 
     def __del__(self):
         del self.texture
+
+    def update_texture(self, pixels):
+        """
+        Because some Blender versions don't support GPUTexture.update/write,
+        we recreate the texture whenever we get new data.
+        """
+        import gpu
+        width, height = self.dimensions
+
+        # Flatten out the pixel data
+        flat_pixels = []
+        for rgba in pixels:
+            flat_pixels.extend(rgba)
+
+        buf = gpu.types.Buffer('FLOAT', width * height * 4, flat_pixels)
+
+        # Destroy old texture
+        del self.texture
+
+        # Create a new texture with fresh data
+        self.texture = gpu.types.GPUTexture((width, height), format='RGBA16F', data=buf)
 
     def draw(self):
         draw_texture_2d(self.texture, (0, 0), self.texture.width, self.texture.height)
 
 
-# RenderEngines also need to tell UI Panels that they are compatible with.
-# We recommend to enable all panels marked as BLENDER_RENDER, and then
-# exclude any panels that are replaced by custom panels registered by the
-# render engine, or that are not supported.
 def get_panels():
     exclude_panels = {
         'VIEWLAYER_PT_filter',
@@ -154,18 +219,13 @@ def get_panels():
 
     return panels
 
-
 def register_remote_render_engine():
-    # Register the RenderEngine
     bpy.utils.register_class(RemoteRenderEngine)
-
     for panel in get_panels():
         panel.COMPAT_ENGINES.add('WARPNERF_REMOTE_RENDER_ENGINE')
 
-
 def unregister_remote_render_engine():
     bpy.utils.unregister_class(RemoteRenderEngine)
-
     for panel in get_panels():
         if 'WARPNERF_REMOTE_RENDER_ENGINE' in panel.COMPAT_ENGINES:
             panel.COMPAT_ENGINES.remove('WARPNERF_REMOTE_RENDER_ENGINE')
