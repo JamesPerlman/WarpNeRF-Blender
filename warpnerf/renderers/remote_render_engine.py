@@ -108,6 +108,13 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
         if not self.draw_data or self.draw_data.dimensions != dimensions:
             self.draw_data = CustomDrawData(dimensions)
 
+        # If final pixels are ready, show them; else the quick pass
+        if self.long_render_finished and self.long_render_pixels is not None:
+            print("Using final rendered image for drawing.")
+            self.draw_data.update_texture(self.long_render_pixels)
+        else:
+            print("Using quick pass for drawing.")
+        
         # If there's no thread running, start a new 1-second "long render"
         if is_user_initiated and (not self.long_render_thread or not self.long_render_thread.is_alive()):
             print("Starting long render thread...")
@@ -118,13 +125,6 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
                 args=(dimensions,)
             )
             self.long_render_thread.start()
-
-        # If final pixels are ready, show them; else the quick pass
-        if self.long_render_finished and self.long_render_pixels is not None:
-            print("Using final rendered image for drawing.")
-            self.draw_data.update_texture(self.long_render_pixels)
-        else:
-            print("Using quick pass for drawing.")
 
         # Draw the texture
         self.draw_data.draw()
