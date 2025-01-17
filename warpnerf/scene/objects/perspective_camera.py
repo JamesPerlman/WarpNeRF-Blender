@@ -29,7 +29,7 @@ class PerspectiveCamera(SceneObject, BlenderCompatible):
             'sx': self.sensor_dims[0],
             'sy': self.sensor_dims[1],
             'R': self.rotation_matrix.tolist(),
-            't': self.translation_vector.tolist()
+            't': self.translation_vector.tolist(),
         }
 
     @classmethod
@@ -56,21 +56,52 @@ class PerspectiveCamera(SceneObject, BlenderCompatible):
         return cam_obj
 
     @classmethod
-    def from_blender(cls, ctx: bpy.types.Context, obj: bpy.types.Object) -> 'PerspectiveCamera':
+    def from_blender(
+        cls,
+        ctx: bpy.types.Context,
+        obj: bpy.types.Object | bpy.types.RegionView3D
+    ) -> 'PerspectiveCamera':
         cam = PerspectiveCamera()
         
         cam.update_from_blender(ctx, obj)
         
         return cam
     
-    def update_from_blender(self, ctx: bpy.types.Context, obj: bpy.types.Object):
-        self.focal_length = bl2wn_camera_focal_length(obj.data, self.image_dims)
-        self.rotation_matrix = obj.matrix_world[:, :3]
-        self.translation_vector = obj.matrix_world[:, 3]
-        self.image_dims = (ctx.scene.render.resolution_x, ctx.scene.render.resolution_y)
-        aspect_ratio = ctx.scene.render.resolution_y / ctx.scene.render.resolution_x
-        self.sensor_dims = (1.0, aspect_ratio)
+    def update_from_blender(
+        self,
+        ctx: bpy.types.Context,
+        obj: bpy.types.Object | bpy.types.RegionView3D
+    ):
+        if isinstance(obj, bpy.types.Object):
+            self.focal_length = bl2wn_camera_focal_length(obj.data, self.image_dims)
+            self.rotation_matrix = obj.matrix_world[:, :3]
+            self.translation_vector = obj.matrix_world[:, 3]
+            self.image_dims = (ctx.scene.render.resolution_x, ctx.scene.render.resolution_y)
+            aspect_ratio = ctx.scene.render.resolution_y / ctx.scene.render.resolution_x
+            self.sensor_dims = (1.0, aspect_ratio)
+        
+        elif isinstance(obj, bpy.types.RegionView3D):
+            rv3d: bpy.types.RegionView3D = obj
+            projection_matrix = np.array(rv3d.window_matrix)
+            view_matrix = np.array(rv3d.view_matrix.inverted())
+            self.focal_length = 0.5 * ctx.region.width * projection_matrix[0, 0]
+            self.rotation_matrix = view_matrix[:3, :3]
+            self.translation_vector = view_matrix[:3, 3]
+            self.image_dims = (ctx.region.width, ctx.region.height)
+            aspect_ratio = ctx.region.height / ctx.region.width
+            self.sensor_dims = (1.0, aspect_ratio)
     
     def update_to_blender(self, ctx: bpy.types.Context, obj: bpy.types.Object):
         obj.matrix_world = np.concatenate([self.rotation_matrix, self.translation_vector], axis=1)
         obj.data.lens = wn2bl_camera_focal_length(obj.data, self.image_dims, self.focal_length)
+
+    # equality operator
+    def __eq__(self, other: 'PerspectiveCamera') -> bool:
+        return (
+            isinstance(other, PerspectiveCamera)
+            and self.focal_length == other.focal_length
+            and self.image_dims == other.image_dims
+            and self.sensor_dims == other.sensor_dims
+            and np.array_equal(self.rotation_matrix, other.rotation_matrix)
+            and np.array_equal(self.translation_vector, other.translation_vector)
+        )
