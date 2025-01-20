@@ -7,6 +7,7 @@ import random
 
 from gpu_extras.presets import draw_texture_2d
 
+from warpnerf.networking.warpnerf_client import WarpNeRFClient
 from warpnerf.scene.objects.perspective_camera import PerspectiveCamera
 
 class RemoteRenderEngine(bpy.types.RenderEngine):
@@ -23,9 +24,37 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
         self.long_render_pixels = None
         self.prev_camera: PerspectiveCamera = None
         self.prev_dims: Tuple[int, int] = None
+        self.subscriptions = []
+        self.client = WarpNeRFClient()
+
+        self.register_client_subscriptions()
 
     def __del__(self):
-        pass
+        self.unregister_client_subscriptions()
+
+    def register_client_subscriptions(self):
+        if len(self.subscriptions) > 0:
+            self.unregister_client_subscriptions()
+        
+        self.subscriptions.append(
+            WarpNeRFClient().subscribe("render_result", self._on_render_result)
+        )
+    
+    def unregister_client_subscriptions(self):
+        for unsubscribe in self.subscriptions:
+            unsubscribe()
+        self.subscriptions = []
+    
+    ######################
+    # Remote renderer hooks
+    def _on_render_result(self, data):
+        print("----------------")
+        print("RECEIVED RENDER RESULT")
+        print(data)
+        print("----------------")
+
+    ######################
+    # RenderEngine methods
 
     def render(self, depsgraph):
         """
@@ -52,9 +81,9 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
 
     def view_update(self, context, depsgraph):
         """
-        Called whenever the scene or 3D viewport changes. We'll leave it minimal,
-        since we spawn the "long render" in view_draw.
+        Called whenever the scene or 3D viewport changes.
         """
+
         print("view_update")
         region = context.region
         scene = depsgraph.scene
@@ -136,8 +165,6 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
         self.prev_camera = camera
         self.prev_dims = dimensions
 
-        
-
     def _long_render_process(self, dimensions):
         """
         Simulates a 1-second "heavy" render that produces random noise.
@@ -203,7 +230,6 @@ class CustomDrawData:
 
     def draw(self):
         draw_texture_2d(self.texture, (0, 0), self.texture.width, self.texture.height)
-
 
 def get_panels():
     exclude_panels = {

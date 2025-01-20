@@ -2,6 +2,7 @@ __reload_order_index__ = -1
 
 import bpy
 from warpnerf.scene.object_identifiers import (
+    WN_OBJ_ATTR_PREFIX,
     WN_OBJECT_ID,
     WN_OTYPE_IDENTIFIER,
 )
@@ -59,6 +60,9 @@ def get_obj_id(obj: bpy.types.Object) -> int | None:
     else:
         return None
 
+def set_obj_id(obj: bpy.types.Object, id: int):
+    obj[WN_OBJECT_ID] = id
+
 def get_obj_by_id(context, id: int, type: str = None) -> bpy.types.Object | None:
     for obj in context.scene.objects:
         if get_obj_id(obj) == id:
@@ -67,3 +71,9 @@ def get_obj_by_id(context, id: int, type: str = None) -> bpy.types.Object | None
             if is_obj_type(obj, type):
                 return obj
     return None
+
+def get_obj_attr(obj: bpy.types.Object, attr_name: str):
+    return obj.get(f'${WN_OBJ_ATTR_PREFIX}_${attr_name}')
+
+def set_obj_attr(obj: bpy.types.Object, attr_name: str, value):
+    obj[f'${WN_OBJ_ATTR_PREFIX}_${attr_name}'] = value

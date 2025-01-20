@@ -1,3 +1,5 @@
+from typing import Callable
+from warpnerf.networking.requests.render_request import RenderRequest
 from warpnerf.networking.websocket_client import WebSocketClient
 from warpnerf.preferences.addon_preferences import fetch_pref
 from warpnerf.utils.async_utils import AsyncRunner
@@ -21,11 +23,13 @@ class WarpNeRFClient:
         if not hasattr(self, "_client"):
             uri = fetch_pref("websocket_uri")
             self._client = WebSocketClient(uri)
-            self.runner.run(self._client.connect())
         
+        if not self._client.is_connected:
+            self.runner.run(self._client.connect())
+
         return self._client
     
-    def subscribe(self, topic, callback):
+    def subscribe(self, topic, callback) -> Callable[[], None]:
         return self.client.subscribe(topic, callback)
     
     def unsubscribe(self, topic, callback):
@@ -34,6 +38,6 @@ class WarpNeRFClient:
     def load_dataset(self, path: str):
         self.runner.run(self.client.send("load_dataset", {"path": str(path)}))
 
-#    def request_render(self, request: RenderRequest):
-#        self.client.send("request_render", request.serialize())
+   def request_render(self, request: RenderRequest):
+       self.client.send("request_render", request.serialize())
     

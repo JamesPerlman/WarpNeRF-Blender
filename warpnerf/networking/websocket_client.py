@@ -1,5 +1,6 @@
 import asyncio
 from collections import defaultdict
+from typing import Callable
 from warpnerf.libs import msgpack
 import warpnerf.libs.websockets as websockets
 
@@ -11,7 +12,7 @@ class WebSocketClient:
         self.subscribers = defaultdict(list)  # Topic -> List of callback functions
 
 
-    def subscribe(self, topic, callback) -> callable:
+    def subscribe(self, topic, callback) -> Callable[[], None]:
         """Subscribe to a topic with a callback function."""
 
         self.subscribers[topic].append(callback)

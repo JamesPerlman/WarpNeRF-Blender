@@ -3,24 +3,35 @@ from typing import List
 
 from warpnerf.scene.objects.blender_compatible import BlenderDeserializable
 from warpnerf.scene.objects.dict_compatible import DictSerializable
-from warpnerf.scene.objects.perspective_camera import PerspectiveCamera
+from warpnerf.scene.objects.radiance_field import RadianceField
 from warpnerf.scene.objects.scene_object import SceneObject, SceneObjectGroup
+from warpnerf.utils.object_utilities import get_obj_type
+
+interpretable_types = [RadianceField]
+def interpret_obj(obj):
+    otype = get_obj_type(obj)
 
 class WNScene(BlenderDeserializable, DictSerializable):
-    camera: PerspectiveCamera
     objects: SceneObjectGroup
 
     @classmethod
     def from_blender(cls, ctx, obj = None):
         scene = WNScene()
-        scene.camera = PerspectiveCamera.from_blender(ctx, ctx.scene.camera)
         scene.objects = []
-        for obj in ctx.scene.objects:
-            if obj.parent is None:
-                scene.objects.append(SceneObject.from_blender(ctx, obj))
+
+        def traverse(obj: bpy.types.Object):
+            if len(obj.children) > 0:
+                for child in obj.children:
+                    traverse(child)
             else:
-                # TODO: complete the recursion
-                pass
+                scene_obj = SceneObject.from_blender(ctx, obj)
+                if scene_obj is not None:
+                    scene.objects.append(scene_obj)
+
+        for obj in ctx.scene.objects:
+            traverse(obj)
+        
+        return scene
                 
 
     def to_dict(self):
