@@ -7,8 +7,10 @@ import random
 
 from gpu_extras.presets import draw_texture_2d
 
+from warpnerf.networking.requests.render_request import RenderRequest
 from warpnerf.networking.warpnerf_client import WarpNeRFClient
 from warpnerf.scene.objects.perspective_camera import PerspectiveCamera
+from warpnerf.scene.objects.wn_scene import WNScene
 
 class RemoteRenderEngine(bpy.types.RenderEngine):
     bl_idname = "WARPNERF_REMOTE_RENDER_ENGINE"
@@ -101,10 +103,7 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
 
     def view_draw(self, context, depsgraph):
         """
-        Called every time the 3D viewport is drawn. We:
-         - Start a new thread to produce random pixels if not already running.
-         - Display the final random pixels if available, otherwise a quick color.
-         - Tag a redraw so Blender keeps calling view_draw() as changes happen.
+        Called every time the 3D viewport is drawn. 
         """
 
         # Create a Camera object from the current 3D viewport
@@ -146,7 +145,16 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
         
         # If there's no thread running, start a new 1-second "long render"
         if is_user_initiated and (not self.long_render_thread or not self.long_render_thread.is_alive()):
-            print("Starting long render thread...")
+         
+            print("Submitting render request...")
+
+            request = RenderRequest()
+            request.scene = WNScene.from_blender(context, scene)
+            request.camera = camera
+            request.size = dimensions
+
+            print(request.to_dict())
+
             self.long_render_finished = False
             self.long_render_pixels = None
             self.long_render_thread = threading.Thread(

@@ -38,6 +38,6 @@ class WarpNeRFClient:
     def load_dataset(self, path: str):
         self.runner.run(self.client.send("load_dataset", {"path": str(path)}))
 
-   def request_render(self, request: RenderRequest):
+    def request_render(self, request: RenderRequest):
        self.client.send("request_render", request.serialize())
     

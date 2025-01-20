@@ -3,6 +3,7 @@ import mathutils
 import numpy as np
 
 from typing import Tuple
+from warpnerf.scene.object_identifiers import WN_OTYPE_RADIANCE_FIELD
 from warpnerf.scene.objects.blender_compatible import BlenderCompatible
 from warpnerf.scene.objects.dict_compatible import DictCompatible
 from warpnerf.scene.objects.scene_object import SceneObject
@@ -24,7 +25,7 @@ class RadianceField(SceneObject, DictCompatible, BlenderCompatible):
 
     @classmethod
     def type(cls) -> str:
-        return 'warpnerf_otype_radiance_field'
+        return WN_OTYPE_RADIANCE_FIELD
     
     def to_dict(self) -> dict:
         return {

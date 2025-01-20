@@ -5,8 +5,8 @@ from warpnerf.scene.object_identifiers import (
     WN_OBJ_ATTR_PREFIX,
     WN_OBJECT_ID,
     WN_OTYPE_IDENTIFIER,
+    WN_OTYPE_RADIANCE_FIELD
 )
-from warpnerf.scene.objects.radiance_field import RadianceField
 
 def is_warpnerf_obj(obj: bpy.types.Object) -> bool:
     return WN_OTYPE_IDENTIFIER in obj and WN_OBJECT_ID in obj
@@ -52,7 +52,7 @@ def get_active_obj_of_type(context, type: str) -> bpy.types.Object | None:
     return obj
 
 def get_active_nerf_obj(context) -> bpy.types.Object | None:
-    return get_active_obj_of_type(context, RadianceField.type())
+    return get_active_obj_of_type(context, WN_OTYPE_RADIANCE_FIELD)
 
 def get_obj_id(obj: bpy.types.Object) -> int | None:
     if is_warpnerf_obj(obj):
