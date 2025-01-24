@@ -4,10 +4,12 @@ import bpy
 # Thank you https://github.com/SBCV/Blender-Addon-Photogrammetry-Importer
 
 
+# from warpnerf.networking.warpnerf_client import WarpNeRFClient
 from warpnerf.operators.import_dataset_operator import ImportNeRFDatasetOperator
 from warpnerf.panels.main.training_panel import NeRFTrainingPanel
 from warpnerf.preferences.addon_preferences import (register_addon_preferences, unregister_addon_preferences)
 from warpnerf.renderers.remote_render_engine import (register_remote_render_engine, unregister_remote_render_engine)
+from warpnerf.scene.scene_manager import WNSceneManager
 
 # Definining the following import and export functions within the
 # "Registration" class causes different errors when hovering over entries in
@@ -82,6 +84,7 @@ class Registration:
         register_addon_preferences()
         cls.register_importers()
         cls.register_panels()
+        bpy._warpnerf_scene_manager = WNSceneManager()
 
     @classmethod
     def unregister_addon(cls):
@@ -89,3 +92,4 @@ class Registration:
         unregister_addon_preferences()
         cls.unregister_importers()
         cls.unregister_panels()
+        del bpy._warpnerf_scene_manager

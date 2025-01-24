@@ -29,20 +29,18 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
         self.subscriptions = []
         self.client = WarpNeRFClient()
 
-        self.register_client_subscriptions()
+        self.register_callbacks()
 
     def __del__(self):
-        self.unregister_client_subscriptions()
+        self.unregister_callbacks()
 
-    def register_client_subscriptions(self):
-        if len(self.subscriptions) > 0:
-            self.unregister_client_subscriptions()
-        
+    def register_callbacks(self):
+        self.unregister_callbacks()
         self.subscriptions.append(
             WarpNeRFClient().subscribe("render_result", self._on_render_result)
         )
     
-    def unregister_client_subscriptions(self):
+    def unregister_callbacks(self):
         for unsubscribe in self.subscriptions:
             unsubscribe()
         self.subscriptions = []

@@ -73,7 +73,7 @@ def get_obj_by_id(context, id: int, type: str = None) -> bpy.types.Object | None
     return None
 
 def get_obj_attr(obj: bpy.types.Object, attr_name: str):
-    return obj.get(f'${WN_OBJ_ATTR_PREFIX}_${attr_name}')
+    return obj.get(f'{WN_OBJ_ATTR_PREFIX}_{attr_name}')
 
 def set_obj_attr(obj: bpy.types.Object, attr_name: str, value):
-    obj[f'${WN_OBJ_ATTR_PREFIX}_${attr_name}'] = value
+    obj[f'{WN_OBJ_ATTR_PREFIX}_{attr_name}'] = value
