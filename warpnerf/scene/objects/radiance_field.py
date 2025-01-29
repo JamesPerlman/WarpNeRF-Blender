@@ -7,7 +7,7 @@ from warpnerf.scene.object_identifiers import WN_OTYPE_RADIANCE_FIELD
 from warpnerf.scene.objects.blender_compatible import BlenderCompatible
 from warpnerf.scene.objects.dict_compatible import DictCompatible
 from warpnerf.scene.objects.scene_object import SceneObject
-from warpnerf.utils.object_utilities import get_obj_attr, get_obj_id, set_obj_attr, set_obj_id
+from warpnerf.utils.object_utilities import get_obj_attr, get_obj_id, set_obj_attr, set_obj_id, set_obj_type
 
 class RadianceField(SceneObject, DictCompatible, BlenderCompatible):
     
@@ -69,6 +69,7 @@ class RadianceField(SceneObject, DictCompatible, BlenderCompatible):
     
     def update_to_blender(self, ctx: bpy.types.Context, obj: bpy.types.Object):
         obj.matrix_world = mathutils.Matrix(self.transform)
+        set_obj_type(obj, self.type())
         set_obj_id(obj, self.id)
         set_obj_attr(obj, 'rf_type', self.rf_type)
         set_obj_attr(obj, 'bbox_size', self.bbox_size)
