@@ -1,13 +1,14 @@
 from typing import Tuple
 import bpy
-import array
+import random
 import threading
 import time
-import random
+import uuid
 
 from gpu_extras.presets import draw_texture_2d
 
 from warpnerf.networking.requests.render_request import RenderRequest
+from warpnerf.networking.responses.render_result import RenderResult
 from warpnerf.networking.warpnerf_client import WarpNeRFClient
 from warpnerf.scene.objects.perspective_camera import PerspectiveCamera
 from warpnerf.scene.objects.wn_scene import WNScene
@@ -48,10 +49,13 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
     ######################
     # Remote renderer hooks
     def _on_render_result(self, data):
-        print("----------------")
-        print("RECEIVED RENDER RESULT")
-        print(data)
-        print("----------------")
+
+        response = RenderResult.from_dict(data)
+
+        self.long_render_pixels = response.pixels
+        self.long_render_finished = True
+
+        self.tag_redraw()
 
     ######################
     # RenderEngine methods
@@ -147,19 +151,12 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
             print("Submitting render request...")
 
             request = RenderRequest()
+            request.id = str(uuid.uuid4())
             request.scene = WNScene.from_blender(context, scene)
             request.camera = camera
             request.size = dimensions
 
-            print(request.to_dict())
-
-            self.long_render_finished = False
-            self.long_render_pixels = None
-            self.long_render_thread = threading.Thread(
-                target=self._long_render_process,
-                args=(dimensions,)
-            )
-            self.long_render_thread.start()
+            self.client.request_render(request)
 
         # Draw the texture
         self.draw_data.draw()
@@ -170,27 +167,6 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
 
         self.prev_camera = camera
         self.prev_dims = dimensions
-
-    def _long_render_process(self, dimensions):
-        """
-        Simulates a 1-second "heavy" render that produces random noise.
-        """
-        print("Long render started...")
-        time.sleep(1.0)  # simulate remote or heavy-lift
-
-        width, height = dimensions
-        pixel_count = width * height
-
-        # random noise, each pixel is [r, g, b, a].
-        final_pixels = [
-            [random.random(), random.random(), random.random(), 1.0]
-            for _ in range(pixel_count)
-        ]
-
-        self.long_render_pixels = final_pixels
-        self.long_render_finished = True
-        print("Long render finished!")
-        self.tag_redraw()
 
 class CustomDrawData:
     def __init__(self, dimensions):
