@@ -6,3 +6,4 @@ WN_OBJECT_ID = "wn_object_id"
 WN_OBJ_ATTR_PREFIX = "wn_attr"
 
 WN_OTYPE_RADIANCE_FIELD = "wn_otype_radiance_field"
+WN_OTYPE_PERSPECTIVE_CAMERA = "wn_otype_perspective_camera"
