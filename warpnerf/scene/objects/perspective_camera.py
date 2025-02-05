@@ -3,12 +3,12 @@ import bpy
 import numpy as np
 
 from warpnerf.blender_utils.cameras import bl2wn_camera_focal_length, wn2bl_camera_focal_length
+from warpnerf.scene.object_identifiers import WN_OTYPE_PERSPECTIVE_CAMERA
 from warpnerf.scene.objects.dict_compatible import DictCompatible
 from warpnerf.utils.object_utilities import set_obj_type
 from warpnerf.scene.objects.blender_compatible import BlenderCompatible
-from warpnerf.scene.objects.scene_object import SceneObject
 
-class PerspectiveCamera(SceneObject, BlenderCompatible, DictCompatible):
+class PerspectiveCamera(BlenderCompatible, DictCompatible):
 
     focal_length: float
     image_dims: Tuple[int, int]
@@ -18,7 +18,7 @@ class PerspectiveCamera(SceneObject, BlenderCompatible, DictCompatible):
     
     @staticmethod
     def type(cls) -> str:
-        return 'warpnerf_otype_perspective_camera'
+        return WN_OTYPE_PERSPECTIVE_CAMERA
     
     # DictSerializable methods
     def to_dict(self) -> dict:
