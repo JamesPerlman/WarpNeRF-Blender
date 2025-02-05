@@ -6,15 +6,14 @@ from typing import Tuple
 from warpnerf.scene.object_identifiers import WN_OTYPE_RADIANCE_FIELD
 from warpnerf.scene.objects.blender_compatible import BlenderCompatible
 from warpnerf.scene.objects.dict_compatible import DictCompatible
-from warpnerf.scene.objects.scene_object import SceneObject
 from warpnerf.utils.object_utilities import get_obj_attr, get_obj_id, set_obj_attr, set_obj_id, set_obj_type
 
-class RadianceField(SceneObject, DictCompatible, BlenderCompatible):
+class RadianceField(DictCompatible, BlenderCompatible):
     
     id: int = 0
     rf_type: str = 'nerf'
     bbox_size: float = 1.0
-    transform: np.ndarray[Tuple[4, 4], np.float32] = np.eye(4, dtype=np.float32)
+    transform: np.ndarray = np.eye(4, dtype=np.float32)
     is_trainable: bool = True
     is_training_enabled: bool = False
     limit_training: bool = True
@@ -30,6 +29,7 @@ class RadianceField(SceneObject, DictCompatible, BlenderCompatible):
     def to_dict(self) -> dict:
         return {
             'id': self.id,
+            'type': self.type(),
             'rf_type': self.rf_type,
             'bbox_size': self.bbox_size,
             'transform': self.transform.tolist(),
