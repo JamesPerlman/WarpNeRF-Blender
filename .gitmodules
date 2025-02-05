@@ -4,3 +4,6 @@
 [submodule "warpnerf/libs/msgpack"]
 	path = warpnerf/libs/msgpack
 	url = git@github.com:msgpack/msgpack-python
+[submodule "warpnerf/libs/websockets"]
+	path = warpnerf/libs/websockets
+	url = git@github.com:python-websockets/websockets
