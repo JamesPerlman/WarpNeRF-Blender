@@ -4,18 +4,21 @@ from typing import List
 from warpnerf.scene.objects.blender_compatible import BlenderDeserializable
 from warpnerf.scene.objects.dict_compatible import DictSerializable
 from warpnerf.scene.objects.radiance_field import RadianceField
-from warpnerf.scene.objects.scene_object import SceneObject, SceneObjectGroup
 from warpnerf.utils.object_utilities import get_obj_type
 
-interpretable_types = [RadianceField]
-def interpret_obj(obj: bpy.types.Object):
+from typing import Union, get_args
+
+SceneObject = Union[RadianceField]
+
+def obj_from_blender(obj: bpy.types.Object) -> SceneObject:
     otype = get_obj_type(obj)
 
-    for t in interpretable_types:
+    for t in get_args(SceneObject):
         if t.type() == otype:
             return t.from_blender(obj)
 
     return None
+
 
 class WNScene(BlenderDeserializable, DictSerializable):
     objects: List[SceneObject]
@@ -30,7 +33,7 @@ class WNScene(BlenderDeserializable, DictSerializable):
                 for child in obj.children:
                     traverse(child)
             else:
-                scene_obj = interpret_obj(obj)
+                scene_obj = obj_from_blender(obj)
                 if scene_obj is not None:
                     scene.objects.append(scene_obj)
 
@@ -38,7 +41,6 @@ class WNScene(BlenderDeserializable, DictSerializable):
             traverse(obj)
         
         return scene
-                
 
     def to_dict(self):
         return {
