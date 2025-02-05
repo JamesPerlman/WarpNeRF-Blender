@@ -1,0 +1,3 @@
+[submodule "warpnerf/libs/Pillow"]
+	path = warpnerf/libs/Pillow
+	url = git@github.com:python-pillow/Pillow
