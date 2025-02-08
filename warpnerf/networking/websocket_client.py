@@ -1,8 +1,8 @@
 import asyncio
 from collections import defaultdict
 from typing import Callable
-from warpnerf.libs import msgpack
-import warpnerf.libs.websockets as websockets
+from warpnerf.libs.msgpack import msgpack
+import warpnerf.libs.websockets.src.websockets as websockets
 
 class WebSocketClient:
     def __init__(self, uri):
@@ -56,7 +56,7 @@ class WebSocketClient:
     async def connect(self):
         """Connect to the WebSocket server."""
         try:
-            self.websocket = await websockets.connect(self.uri)
+            self.websocket = await websockets.connect(self.uri, max_size=1024 * 1024 * 10)
             self.is_connected = True
             print(f"Connected to {self.uri}")
 
