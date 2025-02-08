@@ -21,8 +21,7 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
     def __init__(self):
         self.scene_data = None
         self.draw_data = None
-        # Threading status
-        self.long_render_thread = None
+        self.is_awaiting_render_result = False
         self.long_render_finished = False
         self.long_render_pixels = None
         self.prev_camera: PerspectiveCamera = None
@@ -142,12 +141,15 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
         if self.long_render_finished and self.long_render_pixels is not None:
             print("Using final rendered image for drawing.")
             self.draw_data.update_texture(self.long_render_pixels)
+            self.long_render_finished = False
+            self.is_awaiting_render_result = False
         else:
             print("Using quick pass for drawing.")
         
         # If there's no thread running, start a new 1-second "long render"
-        if is_user_initiated and (not self.long_render_thread or not self.long_render_thread.is_alive()):
-         
+        if is_user_initiated and not self.is_awaiting_render_result:
+            self.is_awaiting_render_result = True
+
             print("Submitting render request...")
 
             request = RenderRequest()
