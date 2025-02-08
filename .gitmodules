@@ -1,6 +1,3 @@
-[submodule "warpnerf/libs/Pillow"]
-	path = warpnerf/libs/Pillow
-	url = git@github.com:python-pillow/Pillow
 [submodule "warpnerf/libs/msgpack"]
 	path = warpnerf/libs/msgpack
 	url = git@github.com:msgpack/msgpack-python
