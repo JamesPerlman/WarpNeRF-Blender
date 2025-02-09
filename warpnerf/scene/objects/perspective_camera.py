@@ -5,6 +5,7 @@ import numpy as np
 from warpnerf.blender_utils.cameras import bl2wn_camera_focal_length, wn2bl_camera_focal_length
 from warpnerf.scene.object_identifiers import WN_OTYPE_PERSPECTIVE_CAMERA
 from warpnerf.scene.objects.dict_compatible import DictCompatible
+from warpnerf.utils.coordinate_spaces import bl2wn_matrix, wn2bl_matrix
 from warpnerf.utils.object_utilities import set_obj_type
 from warpnerf.scene.objects.blender_compatible import BlenderCompatible
 
@@ -74,8 +75,9 @@ class PerspectiveCamera(BlenderCompatible, DictCompatible):
     ):
         if isinstance(obj, bpy.types.Object):
             self.focal_length = bl2wn_camera_focal_length(obj.data, self.image_dims)
-            self.rotation_matrix = obj.matrix_world[:, :3]
-            self.translation_vector = obj.matrix_world[:, 3]
+            obj_mat = wn2bl_matrix(np.array(obj.matrix_world))
+            self.rotation_matrix = obj_mat[:, :3]
+            self.translation_vector = obj_mat[:, 3]
             self.image_dims = (ctx.scene.render.resolution_x, ctx.scene.render.resolution_y)
             aspect_ratio = ctx.scene.render.resolution_y / ctx.scene.render.resolution_x
             self.sensor_dims = (1.0, aspect_ratio)
@@ -83,7 +85,7 @@ class PerspectiveCamera(BlenderCompatible, DictCompatible):
         elif isinstance(obj, bpy.types.RegionView3D):
             rv3d: bpy.types.RegionView3D = obj
             projection_matrix = np.array(rv3d.window_matrix)
-            view_matrix = np.array(rv3d.view_matrix.inverted())
+            view_matrix = bl2wn_matrix(np.array(rv3d.view_matrix.inverted()))
             self.focal_length = 0.5 * ctx.region.width * projection_matrix[0, 0]
             self.rotation_matrix = view_matrix[:3, :3]
             self.translation_vector = view_matrix[:3, 3]
