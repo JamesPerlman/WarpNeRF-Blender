@@ -127,7 +127,7 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
         scene = depsgraph.scene
         dimensions = (region.width, region.height)
 
-        is_user_initiated = (camera != self.prev_camera) or (dimensions != self.prev_dims)
+        has_view_changed = (camera != self.prev_camera) or (dimensions != self.prev_dims)
 
         # Bind display shader
         gpu.state.blend_set('ALPHA_PREMULT')
@@ -147,7 +147,7 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
             print("Using quick pass for drawing.")
         
         # If there's no thread running, start a new 1-second "long render"
-        if is_user_initiated and not self.is_awaiting_render_result:
+        if has_view_changed and not self.is_awaiting_render_result:
             self.is_awaiting_render_result = True
 
             print("Submitting render request...")
@@ -159,6 +159,10 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
             request.size = dimensions
 
             self.client.request_render(request)
+            
+            self.prev_camera = camera
+            self.prev_dims = dimensions
+
 
         # Draw the texture
         self.draw_data.draw()
@@ -166,9 +170,6 @@ class RemoteRenderEngine(bpy.types.RenderEngine):
         # Unbind
         self.unbind_display_space_shader()
         gpu.state.blend_set('NONE')
-
-        self.prev_camera = camera
-        self.prev_dims = dimensions
 
 class CustomDrawData:
     def __init__(self, dimensions):
